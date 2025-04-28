@@ -1,0 +1,45 @@
+name: Cross-Platform Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, windows-latest, macos-latest]
+        arch: [x86_64, x86, arm64, arm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up C++ environment
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: llvm
+          vcvarsall: true
+          cmake: true
+          ninja: true
+          vcpkg: true
+
+      - name: Set up cross-compilation toolchain
+        if: matrix.os == 'ubuntu-20.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc g++ clang
+
+      - name: Create build directory
+        run: cmake -S . -B build
+
+      - name: Compile project
+        run: cmake --build build --config Release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts-${{ matrix.os }}-${{ matrix.arch }}
+          path: build/
