@@ -1,0 +1,66 @@
+name: Build and Package
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        compiler: [gcc, clang]
+        architecture: [x86_64, x86]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies (Linux)
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential g++ gcc clang
+
+    - name: Set up MinGW-w64 (Windows)
+      if: startsWith(matrix.os, 'windows')
+      uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        packages: base-devel mingw-w64-x86_64-toolchain mingw-w64-i686-toolchain
+
+    - name: Set compiler
+      run: |
+        echo "CXX=${{ matrix.compiler }}" >> $GITHUB_ENV
+        echo "CC=${{ matrix.compiler }}" >> $GITHUB_ENV
+
+    - name: Build for Linux
+      if: startsWith(matrix.os, 'ubuntu') && matrix.architecture == 'x86_64'
+      run: |
+        g++ -o wmscq-linux64 wmscq.cpp
+
+    - name: Build for Linux x86
+      if: startsWith(matrix.os, 'ubuntu') && matrix.architecture == 'x86'
+      run: |
+        g++ -m32 -o wmscq-linux32 wmscq.cpp
+
+    - name: Build for Windows x64
+      if: startsWith(matrix.os, 'windows') && matrix.architecture == 'x86_64'
+      run: |
+        C:\msys64\mingw64\bin\g++.exe -o wmscq-windows64.exe wmscq.cpp
+
+    - name: Build for Windows x86
+      if: startsWith(matrix.os, 'windows') && matrix.architecture == 'x86'
+      run: |
+        C:\msys64\mingw32\bin\g++.exe -o wmscq-windows32.exe wmscq.cpp
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: wmscq-${{ matrix.os }}-${{ matrix.architecture }}
+        path: wmscq*
