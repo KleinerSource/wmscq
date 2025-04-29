@@ -1,13 +1,14 @@
-name: Auto Build and Release EXE
+name: Build Windows7 Compatible EXE
 
 on:
   push:
-    branches:
-      - main  # 改成你用的分支名，如 master 也可以
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-latest  # Windows Server 2022，但兼容构建老版本
 
     steps:
     - name: Checkout code
@@ -23,23 +24,12 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
 
-    - name: Build EXE from wmscq.py
+    - name: Build EXE with PyInstaller
       run: |
-        pyinstaller --onefile --noupx --name wmscq wmscq.py
+        pyinstaller --onefile --name wmscq wmscq.py
 
-    - name: Generate timestamp tag name
-      id: tagger
-      shell: bash
-      run: |
-        echo "TAG_NAME=v0.1.$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV
-
-    - name: Create GitHub Release and Upload EXE
-      uses: softprops/action-gh-release@v1
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
       with:
-        tag_name: ${{ env.TAG_NAME }}
-        name: Release ${{ env.TAG_NAME }}
-        files: dist/wmscq.exe
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: wmscq
+        path: dist/wmscq.exe
