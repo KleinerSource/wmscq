@@ -3,7 +3,7 @@ name: Auto Build and Release EXE
 on:
   push:
     branches:
-      - main  # 或你用的分支名
+      - main  # 改成你用的分支名，如 master 也可以
 
 jobs:
   build:
@@ -27,23 +27,19 @@ jobs:
       run: |
         pyinstaller --onefile --noupx --name wmscq wmscq.py
 
-    - name: Generate timestamp version tag
-      id: generate_tag
+    - name: Generate timestamp tag name
+      id: tagger
+      shell: bash
       run: |
         echo "TAG_NAME=v0.1.$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV
 
-    - name: Create Git Tag
-      run: |
-        git config user.name github-actions
-        git config user.email github-actions@github.com
-        git tag $TAG_NAME
-        git push origin $TAG_NAME
-
-    - name: Create GitHub Release
+    - name: Create GitHub Release and Upload EXE
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ env.TAG_NAME }}
         name: Release ${{ env.TAG_NAME }}
         files: dist/wmscq.exe
+        draft: false
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
