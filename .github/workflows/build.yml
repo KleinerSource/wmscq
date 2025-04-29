@@ -1,14 +1,13 @@
-name: Build Windows7 Compatible EXE
+name: Auto Build and Release EXE
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  push:  # 任何提交都会触发
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: windows-latest  # Windows Server 2022，但兼容构建老版本
+    runs-on: windows-latest
 
     steps:
     - name: Checkout code
@@ -24,12 +23,23 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
 
-    - name: Build EXE with PyInstaller
+    - name: Build EXE from wmscq.py
       run: |
-        pyinstaller --onefile --name wmscq wmscq.py
+        pyinstaller --onefile --noupx --name wmscq wmscq.py
 
-    - name: Upload artifact
+    - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
-        name: wmscq
+        name: wmscq-exe
         path: dist/wmscq.exe
+
+    - name: Create or Update Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: latest
+        name: Latest Build
+        files: dist/wmscq.exe
+        prerelease: true
+        draft: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
