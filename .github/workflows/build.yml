@@ -1,4 +1,4 @@
-name: Cross-Platform Build
+name: Build Windows7 Compatible EXE
 
 on:
   push:
@@ -8,38 +8,28 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        os: [ubuntu-22.04, windows-latest, macos-latest]
-        arch: [x86_64, x86, arm64, arm]
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest  # Windows Server 2022，但兼容构建老版本
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up C++ environment
-        uses: aminya/setup-cpp@v1
-        with:
-          compiler: llvm
-          vcvarsall: true
-          cmake: true
-          ninja: true
-          vcpkg: true
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.7'
 
-      - name: Set up cross-compilation toolchain
-        if: matrix.os == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc g++ clang
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        pip install pyinstaller
 
-      - name: Create build directory
-        run: cmake -S . -B build
+    - name: Build EXE with PyInstaller
+      run: |
+        pyinstaller --onefile --name wmscq wmscq.py
 
-      - name: Compile project
-        run: cmake --build build --config Release
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifacts-${{ matrix.os }}-${{ matrix.arch }}
-          path: build/
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: wmscq
+        path: dist/wmscq.exe
